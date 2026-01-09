@@ -1,46 +1,40 @@
-# Command Decoder (UART Register File)
+# Command Decoder Testbench
 
-This block implements the command decoding logic for the UART-controlled
-register file system.
+This testbench verifies the functionality of the `cmd_decoder` block in isolation.
 
-The decoder processes complete commands collected by the `cmd_collector`
-module and determines the required system action.
+The decoder receives a complete command (`cmd`, `addr`, `data`) from the command collector and generates:
+- Register file control signals
+- One-cycle response pulses indicating success, data return, or error
 
-## Functionality
+## What is Tested
 
-Each command consists of three bytes:
-- Command (CMD)
-- Address (ADDR)
-- Data (DATA)
+The following cases are covered:
 
-The decoder reacts to a one-cycle `cmd_ready` pulse and performs exactly
-one action per command.
+1. **Valid WRITE command**
+   - Generates a register write enable
+   - Correct register address and write data
+   - Produces an `OK` response pulse
 
-## Supported Commands
+2. **Valid READ command**
+   - Returns register read data
+   - Produces a `DATA` response pulse with address and data
 
-- `0x57` ('W') – WRITE  
-  Writes `DATA` to the register at `ADDR` if the address is valid.
+3. **Invalid address**
+   - Address outside the 16-register range (0x00–0x0F)
+   - Produces an `ERR` response with error code
 
-- `0x52` ('R') – READ  
-  Reads data from the register at `ADDR` if the address is valid.
+4. **Unknown command**
+   - Unsupported command byte
+   - Produces an `ERR` response with error code
 
-## Addressing Rules
+## Testbench Notes
 
-- Valid register addresses: `0x00` – `0x0F`
-- Addresses outside this range result in an error response.
+- The register file is **not instantiated** in this testbench.
+- Register read data (`reg_rd_data`) is **mocked by the testbench** to verify decoder behavior in isolation.
+- All response and control signals are expected to be **single-cycle pulses**.
 
-## Responses
+## Waveform
 
-The decoder generates one-cycle response signals used by the UART TX logic:
+The waveform below illustrates command execution and response signaling for the tested cases.
 
-- `resp_ok`   – Write successful (`'K'`)
-- `resp_data` – Read response with data (`'D'`)
-- `resp_err`  – Error response (`'E'`)
-
-Error codes:
-- `0x01` – Unknown command
-- `0x02` – Invalid address
-
-## Status
-
-RTL implementation and testbench are work in progress.
+![cmd_decoder waveform](cmd_decoder_waveform.png)
